@@ -1,0 +1,284 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Snake Game</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #080817;
+  color: white;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.game {
+  text-align: center;
+  padding: 20px;
+  width: 100%;
+  max-width: 500px;
+}
+
+h1 {
+  color: #00ffff;
+  font-size: 35px;
+  text-shadow: 0 0 15px #00ffff;
+  margin-bottom: 15px;
+}
+
+.score {
+  font-size: 22px;
+  margin-bottom: 15px;
+  color: #00ff99;
+}
+
+canvas {
+  background: #c91212;
+  border: 3px solid #00ffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 0 25px #00ffff66;
+}
+
+button {
+  background: #00ffff;
+  color: #080817;
+  border: none;
+  padding: 12px 25px;
+  margin-top: 18px;
+  border-radius: 8px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #00ff99;
+  box-shadow: 0 0 15px #00ffff;
+}
+
+.info {
+  color: #aaa;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+<h1>🐍 NEON SNAKE</h1>
+
+<div class="score">
+  Score: <span id="score">0</span>
+</div>
+
+<canvas id="board" width="400" height="400"></canvas>
+
+<br>
+
+<button onclick="restartGame()">RESTART GAME</button>
+
+<div class="info">
+  Use Arrow Keys ⬆️ ⬇️ ⬅️ ➡️ to Play
+</div>
+
+</div>
+
+<script>
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+
+const size = 10;
+
+let snake;
+let food;
+let dx;
+let dy;
+let score;
+let gameOver;
+let timer;
+
+function init() {
+
+  snake = [
+    {x: 200, y: 200},
+    {x: 180, y: 200},
+    {x: 160, y: 200}
+  ];
+
+  dx = size;
+  dy = 0;
+
+  score = 0;
+  gameOver = false;
+
+  document.getElementById("score").textContent = score;
+
+  createFood();
+  clearInterval(timer);
+  timer = setInterval(gameLoop, 130);
+
+}
+
+function createFood() {
+
+  food = {
+    x: Math.floor(Math.random() * 20) * size,
+    y: Math.floor(Math.random() * 20) * size
+  };
+
+  if (snake.some(part => part.x === food.x && part.y === food.y)) {
+    createFood();
+  }
+
+}
+
+function draw() {
+
+  ctx.fillStyle = "#101027";
+  ctx.fillRect(0, 0, 400, 400);
+
+  // Food
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = "#ff0066";
+  ctx.fillStyle = "#ff0066";
+
+  ctx.beginPath();
+  ctx.arc(food.x + 10, food.y + 10, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Snake
+  snake.forEach((part, index) => {
+
+    ctx.shadowColor = "#00ffff";
+    ctx.shadowBlur = 12;
+
+    ctx.fillStyle = index === 0 ? "#00ffff" : "#00cc99";
+
+    ctx.fillRect(part.x + 2, part.y + 2, 16, 16);
+
+  });
+
+  ctx.shadowBlur = 0;
+
+}
+
+function gameLoop() {
+
+  if (gameOver) return;
+
+  const head = {
+    x: snake[0].x + dx,
+    y: snake[0].y + dy
+  };
+
+  // Wall collision
+  if (
+    head.x < 0 ||
+    head.x >= 400 ||
+    head.y < 0 ||
+    head.y >= 400
+  ) {
+    endGame();
+    return;
+  }
+
+  // Self collision
+  const eating = head.x === food.x && head.y === food.y;
+  const body = eating ? snake : snake.slice(0, -1);
+
+  if (body.some(part => part.x === head.x && part.y === head.y)) {
+    endGame();
+    return;
+  }
+
+  snake.unshift(head);
+
+  if (eating) {
+    score += 10;
+    document.getElementById("score").textContent = score;
+    createFood();
+
+    clearInterval(timer);
+    timer = setInterval(gameLoop, Math.max(55, 130 - score));
+  } else {
+    snake.pop();
+  }
+
+  draw();
+
+}
+
+function endGame() {
+
+  gameOver = true;
+  clearInterval(timer);
+
+  ctx.fillStyle = "rgba(0,0,0,0.75)";
+  ctx.fillRect(0, 0, 400, 400);
+
+  ctx.fillStyle = "#ff3366";
+  ctx.font = "bold 35px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("GAME OVER", 200, 190);
+
+  ctx.fillStyle = "white";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 200, 230);
+
+}
+
+document.addEventListener("keydown", function(e) {
+
+  if (e.key === "ArrowUp" && dy === 0) {
+    dx = 0;
+    dy = -size;
+  }
+
+  if (e.key === "ArrowDown" && dy === 0) {
+    dx = 0;
+    dy = size;
+  }
+
+  if (e.key === "ArrowLeft" && dx === 0) {
+    dx = -size;
+    dy = 0;
+  }
+
+  if (e.key === "ArrowRight" && dx === 0) {
+    dx = size;
+    dy = 0;
+  }
+
+});
+
+function restartGame() {
+  init();
+  draw();
+}
+
+init();
+draw();
+
+</script>
+
+</body>
+</html>
